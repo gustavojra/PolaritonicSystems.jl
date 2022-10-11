@@ -4,7 +4,7 @@ using Formatting
 export eV, nm
 export output
 export QuantumWire, time_propagate, create_exciton_wavepacket, mean_square_disp
-export prob_any_mol, prob_any_phot, get_exciton_prob
+export prob_any_mol, prob_any_phot, get_exciton_prob, exciton_survival_prob
 export SQuantumWire
 
 function _print_inputs(inputs...)
