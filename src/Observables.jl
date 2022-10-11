@@ -99,7 +99,7 @@ Pₘ(t) = ∑ₙ |⟨1ₙ|exp(-iĤt/ħ)|1ₙ⟩|² / Nm
 | Argument |    Type     |                                       Description                                                                  |
 |:--------:|:------------|:-------------------------------------------------------------------------------------------------------------------| 
 | system   | QuantumWire | QuantumWire object - constaints all static information of the system.                                              |
-| t         | Number/Quantity | Time for which the system must be evolved into. If a number, unit is taken as `ps`.                                |
+| t        | Number/Quantity | Time for which the system must be evolved into. If a number, unit is taken as `ps`.                            |
 """
 function exciton_survival_prob(sys::QuantumWire, t::Quantity)
     exciton_survival_prob(sys, ustrip(u"ps", t))
