@@ -89,3 +89,36 @@ function get_exciton_prob(state::Vector, system::QuantumWire)
     # Renormalize 
     return loc ./ sum(loc)
 end
+
+"""
+    excition_survival_prob
+
+For a given system, compute the mean probabiility that an initially excited molecule at time t = 0 will remain excited at time t. 
+Pₘ(t) = ∑ₙ |⟨1ₙ|exp(-iĤt/ħ)|1ₙ⟩|² / Nm
+
+| Argument |    Type     |                                       Description                                                                  |
+|:--------:|:------------|:-------------------------------------------------------------------------------------------------------------------| 
+| system   | QuantumWire | QuantumWire object - constaints all static information of the system.                                              |
+| t         | Number/Quantity | Time for which the system must be evolved into. If a number, unit is taken as `ps`.                                |
+"""
+function exciton_survival_prob(sys::QuantumWire, t::Quantity)
+    exciton_survival_prob(sys, ustrip(u"ps", t))
+end
+
+function exciton_survival_prob(sys::QuantumWire, t::Number)
+    out = 0.0
+    for i = sys.mol_range
+
+        # i-th molecule expressed in the polariton basis
+        state = sys.Uix[i, :]
+
+        # time-evolved state |final⟩ = exp(-iĤt/ħ)|initial⟩
+        new = time_propagate(state, sys, t)
+
+        # Compute |⟨initial|final⟩|²
+        out += abs2(dot(state, new))
+    end
+
+    # Divide it by Nm
+    return out / length(sys.mol_range)
+end
