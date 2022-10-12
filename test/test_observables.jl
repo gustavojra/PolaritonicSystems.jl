@@ -12,8 +12,8 @@ using Test
         σa = 0,
         ωM = 1.0eV,
         σM = 0,
-        Ly = 1e7nm,
-        Lz = 1e7nm,
+        Ly = 400nm,
+        Lz = 200nm,
         nz = 1,
         ny = 1
     )
@@ -37,7 +37,14 @@ using Test
         @test prob_any_mol(wvp, sys) ≈ 1.0
 
         # Initial exciton survival must be one
-        @test exciton_survival_prob(sys, 0.0) == 1.0
+        @test exciton_survival_prob(sys, 0.0) ≈ 1.0
+
+        # Create a wavepacket with positve average momentum
+        wvpp = create_exciton_wavepacket(1500nm, 80nm, sys, q=0.2nm^-1)
+        @test abs(mean_disp(wvpp, 1500, sys)) < 1e-10
+        @test mean_disp(time_propagate(wvpp, sys, 1.0), 1500, sys) > 1.0
+        wvpm = create_exciton_wavepacket(1500nm, 80nm, sys, q=-0.2nm^-1)
+        @test mean_disp(time_propagate(wvpm, sys, 1.0), 1500, sys) < 1.0
     end
 
     # Compare implemented `exciton_survival_prob` to an alternative implementation

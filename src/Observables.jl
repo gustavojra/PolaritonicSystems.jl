@@ -1,7 +1,7 @@
 """
     mean_square_disp
 
-Computes the average squared displacement (with respect to an initial position μ): ⟨(x - x0)²⟩
+Computes the average squared displacement (with respect to an initial position x0): ⟨(x - x0)²⟩
 
 # Arguments
 
@@ -34,6 +34,43 @@ end
 # Support for units
 function mean_square_disp(state::Vector, x0::Quantity, system::QuantumWire)
     mean_square_disp(state, ustrip(u"nm", x0), system)
+end
+
+"""
+    mean_disp
+
+Computes the average displacement (with respect to an initial position x0): ⟨(x - x0)⟩
+
+# Arguments
+
+| Argument |       Type      |                                       Description                                                                  |
+|:--------:|:----------------|:-------------------------------------------------------------------------------------------------------------------| 
+| state    | Vector          | Vector representing the state to be analyzed.                                                                      |
+| x0       | Number/Quantity | Position for which the displacement is computed against. If a number, unit is taken as `nm`.                       |
+| system   | QuantumWire     | QuantumWire object - constaints all static information of the system.                                              |
+"""
+function mean_disp(state::Vector, x0::Number, system::QuantumWire)
+    # Transform to localized (uncoupled) state
+    unc_state = system.Uix * state
+
+    # Loop through molecules
+    x = 0.0
+    n = 1
+    for i = system.mol_range
+        # Contribution of each molecule is P * (x-x0), where P is the probability of the state
+        # being localized at that molecule and x is its position
+        x += abs2(unc_state[i]) * (system.mol_positions[n] - x0)
+        n += 1
+    end
+
+    # Renormalize (conditional probability) with the probability of finding the molecular exciton
+    Pmol = prob_any_mol(state, system)
+    return x / Pmol
+end
+
+# Support for units
+function mean_disp(state::Vector, x0::Quantity, system::QuantumWire)
+    mean_disp(state, ustrip(u"nm", x0), system)
 end
 
 """

@@ -81,8 +81,9 @@ It represents the probability of finding the excitation energy in a specific mol
 | μ        | Number/Quantity | Average position of the wave packet. If a number, unit is taken as `nm`.                                           |
 | σ        | Number/Quantity | Standard deviation for the Gaussian wave packet. If a number, unit is taken as `nm`.                               |
 | system   | QuantumWire     | QuantumWire object - constaints all static information of the system.                                              |
+| q        | Number/Quantity | KEYWORD ARGUMENT - Average wavenumber of the exciton - adds complex component.                                     |
 """
-function create_exciton_wavepacket(μ::Number, σ::Number, system::QuantumSystem)
+function create_exciton_wavepacket(μ::Number, σ::Number, system::QuantumSystem; q::Number=0.0)
 
     N = length(system.mol_energies) + length(system.phot_energies)
 
@@ -91,7 +92,7 @@ function create_exciton_wavepacket(μ::Number, σ::Number, system::QuantumSystem
     # Compute expansion coefficients for the molecular states as √P
     # where P is a normal Gaussian distribution
     for (i, xn) in zip(system.mol_range, system.mol_positions)
-        locstate[i] = sqrt.(1/√(2π*σ^2) * exp(- (xn - μ)^2 / 2σ^2))
+        locstate[i] = sqrt.(1/√(2π*σ^2) * exp(- (xn - μ)^2 / 2σ^2)) * exp(im*q*xn)
     end
 
     # Normalize
@@ -107,11 +108,11 @@ function create_exciton_wavepacket(μ::Number, σ::Number, system::QuantumSystem
 end
 
 # Support for units
-function create_exciton_wavepacket(μ::Quantity, σ::Quantity, system::QuantumSystem) 
-    create_exciton_wavepacket(ustrip(u"nm", μ), ustrip(u"nm", σ), system)
+function create_exciton_wavepacket(μ::Quantity, σ::Quantity, system::QuantumSystem; q::Quantity=0.0nm^-1) 
+    create_exciton_wavepacket(ustrip(u"nm", μ), ustrip(u"nm", σ), system, q=ustrip(u"nm^-1", q))
 end
 
 # Support for units
-function create_exciton_wavepacket(μ::Quantity, σ::Number, system::QuantumSystem) 
-    create_exciton_wavepacket(ustrip(u"nm", μ), ustrip(u"nm", σ * unit(μ)), system)
+function create_exciton_wavepacket(μ::Quantity, σ::Number, system::QuantumSystem; q::Quantity=0.0nm^-1)  
+    create_exciton_wavepacket(ustrip(u"nm", μ), ustrip(u"nm", σ * unit(μ)), system, q=ustrip(u"nm^-1", q))
 end
