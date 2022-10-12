@@ -122,3 +122,55 @@ function exciton_survival_prob(sys::QuantumWire, t::Number)
     # Divide it by Nm
     return out / length(sys.mol_range)
 end
+
+"""
+    average_energy
+
+For a given state vector, returns the average energy  ⟨E⟩ = ⟨ψ|Ĥ|ψ⟩.
+
+# Arguments
+
+| Argument |    Type     |                                       Description                                                                  |
+|:--------:|:------------|:-------------------------------------------------------------------------------------------------------------------| 
+| state    | Vector      | Vector representing the state to be analyzed.                                                                      |
+| system   | QuantumWire | QuantumWire object - constaints all static information of the system.                                              |
+"""
+function average_energy(state::Vector, sys::QuantumWire)
+    return dot(state, sys.evals .* state) |> real
+end
+
+"""
+    average_square_energy
+
+For a given state vector, returns the average squared energy  ⟨E²⟩ = ⟨ψ|Ĥ²|ψ⟩.
+
+# Arguments
+
+| Argument |    Type     |                                       Description                                                                  |
+|:--------:|:------------|:-------------------------------------------------------------------------------------------------------------------| 
+| state    | Vector      | Vector representing the state to be analyzed.                                                                      |
+| system   | QuantumWire | QuantumWire object - constaints all static information of the system.                                              |
+"""
+function average_square_energy(state::Vector, sys::QuantumWire)
+    return dot(state, (sys.evals.^2) .* state) |> real
+end
+
+"""
+    average_square_energy
+
+For a given state vector, returns the energy uncertainty σₑ = √[ ⟨E²⟩ - ⟨E⟩² ] 
+
+# Arguments
+
+| Argument |    Type     |                                       Description                                                                  |
+|:--------:|:------------|:-------------------------------------------------------------------------------------------------------------------| 
+| state    | Vector      | Vector representing the state to be analyzed.                                                                      |
+| system   | QuantumWire | QuantumWire object - constaints all static information of the system.                                              |
+"""
+function energy_uncertainty(state::Vector, sys::QuantumWire)
+    E2 = average_square_energy(state, sys)
+    E = average_energy(state, sys)
+
+    # Abs is needed because sometimes E2 is just numerically smaller than E² and we get a domain error for sqrt
+    return √(abs(E2 - E^2))
+end

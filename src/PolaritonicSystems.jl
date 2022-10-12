@@ -5,6 +5,7 @@ export eV, nm
 export output
 export QuantumWire, time_propagate, create_exciton_wavepacket, mean_square_disp
 export prob_any_mol, prob_any_phot, get_exciton_prob, exciton_survival_prob
+export average_energy, average_square_energy, energy_uncertainty
 export SQuantumWire
 
 function _print_inputs(inputs...)
