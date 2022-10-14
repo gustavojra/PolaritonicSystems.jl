@@ -144,16 +144,17 @@ end
 
 function exciton_survival_prob(sys::QuantumWire, t::Number)
     out = 0.0
+    ħ = ustrip(u"eV*ps", CODATA2018.PlanckConstant) / 2π
+    expv = [exp(-im*E*t/ħ) for E in sys.evals]
+
     for i = sys.mol_range
-
-        # i-th molecule expressed in the polariton basis
-        state = sys.Uix[i, :]
-
-        # time-evolved state |final⟩ = exp(-iĤt/ħ)|initial⟩
-        new = time_propagate(state, sys, t)
-
-        # Compute |⟨initial|final⟩|²
-        out += abs2(dot(state, new))
+        dot = 0.0
+        for j = eachindex(sys.evals)
+            c = sys.Uix[i,j]
+            # Compute |⟨initial|final⟩|²
+            dot += adjoint(c) * expv[j] * c
+        end
+        out += abs2(dot)
     end
 
     # Divide it by Nm
