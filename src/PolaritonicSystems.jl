@@ -1,12 +1,18 @@
 module PolaritonicSystems
+using PhysicalConstants: CODATA2018
 using Formatting
+using Unitful
 
 export eV, nm
 export output
 export QuantumWire, time_propagate, create_exciton_wavepacket, mean_square_disp, mean_disp
+export time_propagate!
 export prob_any_mol, prob_any_phot, get_exciton_prob, exciton_survival_prob
 export average_energy, average_square_energy, energy_uncertainty
 export SQuantumWire
+
+const ħ = ustrip(u"eV*ps", CODATA2018.PlanckConstant) / 2π
+const imħ = -im/ħ
 
 function _print_inputs(inputs...)
 

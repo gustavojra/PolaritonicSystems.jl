@@ -13,13 +13,15 @@ system is assumed to be time-independent.
 | t         | Number/Quantity | Time for which the system must be evolved into. If a number, unit is taken as `ps`.                                |
 """
 function time_propagate(state::Vector, system::QuantumWire, t::Number)
+    out = similar(state)
+    time_propagate!(out, state, system, t)
+    return out
+end
 
-    ħ = ustrip(u"eV*ps", CODATA2018.PlanckConstant) / 2π
-
-    expv = [exp(-im*E*t/ħ) for E in system.evals]
-
-    # newstate = state * exp(-iEt/h)
-    return expv .* state
+function time_propagate!(out::Vector, state::Vector, system::QuantumWire, t::Number)
+    for i in eachindex(out)
+        out[i] = exp(imħ*system.evals[i]*t) * state[i]
+    end
 end
 
 function time_propagate(state::Vector, system::SQuantumWire, t::Number)

@@ -19,15 +19,18 @@ function mean_square_disp(state::Vector, x0::Number, system::QuantumWire)
     # Loop through molecules
     x2 = 0.0
     n = 1
+    Pmol = 0.0
     for i = system.mol_range
         # Contribution of each molecule is P * (x-x0)^2, where P is the probability of the state
         # being localized at that molecule and x is its position
         x2 += abs2(unc_state[i]) * (system.mol_positions[n] - x0)^2
+
+        # Probabilty of finding a molecule excited
+        Pmol += abs2(unc_state[i])
         n += 1
     end
 
     # Renormalize (conditional probability) with the probability of finding the molecular exciton
-    Pmol = prob_any_mol(state, system)
     return x2 / Pmol
 end
 
@@ -56,15 +59,18 @@ function mean_disp(state::Vector, x0::Number, system::QuantumWire)
     # Loop through molecules
     x = 0.0
     n = 1
+    Pmol = 0.0
     for i = system.mol_range
         # Contribution of each molecule is P * (x-x0), where P is the probability of the state
         # being localized at that molecule and x is its position
         x += abs2(unc_state[i]) * (system.mol_positions[n] - x0)
+
+        # Probabilty of finding a molecule excited
+        Pmol += abs2(unc_state[i])
         n += 1
     end
 
     # Renormalize (conditional probability) with the probability of finding the molecular exciton
-    Pmol = prob_any_mol(state, system)
     return x / Pmol
 end
 
