@@ -19,7 +19,7 @@ function time_propagate(state::Vector, system::QuantumWire, t::Number)
 end
 
 function time_propagate!(out::Vector, state::Vector, system::QuantumWire, t::Number)
-    for i in eachindex(out)
+    Threads.@threads for i in eachindex(out)
         out[i] = exp(imħ*system.evals[i]*t) * state[i]
     end
 end
