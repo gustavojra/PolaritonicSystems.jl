@@ -150,14 +150,13 @@ end
 
 function exciton_survival_prob(sys::QuantumWire, t::Number)
     out = 0.0
-    ħ = ustrip(u"eV*ps", CODATA2018.PlanckConstant) / 2π
-    expv = [exp(-im*E*t/ħ) for E in sys.evals]
+    expv = [exp(imħ*E*t) for E in sys.evals]
 
     for i = sys.mol_range
         dot = 0.0
+        # Compute |⟨initial|final⟩|²
         for j = eachindex(sys.evals)
             c = sys.Uix[i,j]
-            # Compute |⟨initial|final⟩|²
             dot += adjoint(c) * expv[j] * c
         end
         out += abs2(dot)
