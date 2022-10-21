@@ -131,6 +131,15 @@ function QuantumWire(;ΩR::Quantity, ϵ::Number, Nc::Int, Nm::Int, a::Quantity, 
     # Create an array of energy values for molecules using a normal distribution 
     ωMvals = rand(Normal(_ωM, _σM), Nm)
 
+    attempts = 1
+    while minimum(ωMvals) < 0.0
+        attempts += 1
+        if attempts > 10
+            error("Could not produce a Gaussian energy distribution without negative energies for ωM = $_ωM and σM = $_σM")
+        end
+        ωMvals = rand(Normal(_ωM, _σM), Nm)
+    end
+
     # Create an array with molecular positions uniformily spaces by `a` nm 
     # Plus a random deviation sampled from a normal distribution
     @assert Nm > 1
