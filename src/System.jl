@@ -72,7 +72,7 @@ eV
 | ny        | Int      | Radiation quantum number associated with Y coordinate.                                            |
 """
 function QuantumWire(;ΩR::Quantity, ϵ::Number, Nc::Int, Nm::Int, a::Quantity, σa::Number, ωM::Quantity, σM::Number, 
-    Ly::Quantity, Lz::Quantity, nz::Int, ny::Int, printout=false)
+    Ly::Quantity, Lz::Quantity, nz::Int, ny::Int, printout=false, balanced=true)
 
     ### 1. HANDLE UNITS AND PHYSICAL CONSTANTS
 
@@ -166,24 +166,41 @@ function QuantumWire(;ΩR::Quantity, ϵ::Number, Nc::Int, Nm::Int, a::Quantity, 
     end
 
     # Prepare a vector with cavity energies and wavevectors. 
-    Ncm = 2*Nc + 1
-    wvec = zeros(Ncm)
-    ωc = zeros(Ncm)
-    wvec[1] = 0.0       # Minimal wavevector qx = 0
-    ωc[1]   = _ħ*_c*q₀/√ϵ # Energy for qx = 0
-    n = 2
-    for mₓ = 1:Nc
-        qₓ = 2π * mₓ / Lx
-        ω = _ħ*_c*√((q₀^2 + qₓ^2)/ϵ)
+    if balanced
+        Ncm = 2*Nc + 1
+        wvec = zeros(Ncm)
+        ωc = zeros(Ncm)
+        wvec[1] = 0.0       # Minimal wavevector qx = 0
+        ωc[1]   = _ħ*_c*q₀/√ϵ # Energy for qx = 0
+        n = 2
+        for mₓ = 1:Nc
+            qₓ = 2π * mₓ / Lx
+            ω = _ħ*_c*√((q₀^2 + qₓ^2)/ϵ)
 
-        # Must include positive and negative components
-        wvec[n] = qₓ
-        wvec[n+1] = -qₓ
+            # Must include positive and negative components
+            wvec[n] = qₓ
+            wvec[n+1] = -qₓ
 
-        # Energy is degenerate for -q and +q values
-        ωc[n] = ω
-        ωc[n+1] = ω
-        n = n + 2
+            # Energy is degenerate for -q and +q values
+            ωc[n] = ω
+            ωc[n+1] = ω
+            n = n + 2
+        end
+    else
+        # Include only positive components of the wavevector
+        Ncm = Nc + 1
+        wvec = zeros(Ncm)
+        ωc = zeros(Ncm)
+        wvec[1] = 0.0       # Minimal wavevector qx = 0
+        ωc[1]   = _ħ*_c*q₀/√ϵ # Energy for qx = 0
+        n = 2
+        for mₓ = 1:Nc
+            qₓ = 2π * mₓ / Lx
+            ω = _ħ*_c*√((q₀^2 + qₓ^2)/ϵ)
+
+            wvec[mₓ+1] = qₓ
+            ωc[mₓ+1] = ω
+        end
     end
 
     if printout
@@ -215,9 +232,9 @@ function QuantumWire(;ΩR::Quantity, ϵ::Number, Nc::Int, Nm::Int, a::Quantity, 
     # Similarly, the molecular range starts at Np+1 and ends at Np + Nm, where Nm is the number of molecules
     # That is 2Nc + 2 -> 2Nc + Nm + 1
     # This is the range of pure photonic states in the basis used to construct the Hamiltonian
-    rphot = 1:(2Nc+1)
+    rphot = 1:(Ncm)
     # This is the range of pure molecular states in the basis used to construct the Hamiltonian
-    rmol = (2Nc+2):(2Nc+Nm+1)
+    rmol = (Ncm+1):(Ncm+Nm)
 
     # Construct and return the `QuantumWire` system object.
     return QuantumWire(Uix, e, rphot, rmol, ωMvals, avals, ωc, wvec)
