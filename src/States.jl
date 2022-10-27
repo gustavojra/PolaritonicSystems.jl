@@ -118,3 +118,11 @@ end
 function create_exciton_wavepacket(μ::Quantity, σ::Number, system::QuantumSystem; q::Quantity=0.0nm^-1)  
     create_exciton_wavepacket(ustrip(u"nm", μ), ustrip(u"nm", σ * unit(μ)), system, q=ustrip(u"nm^-1", q))
 end
+
+function energy_filter!(state::Vector, sys::QuantumSystem, ω0, δω)
+    for i in eachindex(state)
+        ωi = sys.evals[i]
+        state[i] *= exp(-(ωi-ω0)^2 / (2*δω^2))
+    end
+    normalize!(state)
+end
