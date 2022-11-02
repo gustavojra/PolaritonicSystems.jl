@@ -217,3 +217,20 @@ function energy_uncertainty(state::Vector, sys::QuantumWire)
     # Abs is needed because sometimes E2 is just numerically smaller than E² and we get a domain error for sqrt
     return √(abs(E2 - E^2))
 end
+
+function eigenvector_spread(sys::QuantumWire)
+    out = zeros(length(sys.evals))
+
+    for χ in eachindex(out)
+        r = 0.0
+        r2 = 0.0
+        for (n,i) in enumerate(sys.mol_range)
+            r  += abs2(sys.Uix[i, χ]) * sys.mol_positions[n]
+            r2 += abs2(sys.Uix[i, χ]) * sys.mol_positions[n]^2
+        end
+
+        out[χ] = sqrt(r2 - r^2)
+    end
+
+    return out
+end

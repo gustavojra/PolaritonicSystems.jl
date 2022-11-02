@@ -6,7 +6,7 @@ using Unitful
 export eV, nm
 export output
 export QuantumWire, time_propagate, create_exciton_wavepacket, mean_square_disp, mean_disp
-export time_propagate!
+export time_propagate!, eigenvector_spread
 export prob_any_mol, prob_any_phot, get_exciton_prob, exciton_survival_prob
 export average_energy, average_square_energy, energy_uncertainty, energy_filter!
 export SQuantumWire
