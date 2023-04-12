@@ -9,7 +9,6 @@ export QuantumWire, time_propagate, create_exciton_wavepacket, mean_square_disp,
 export time_propagate!, eigenvector_spread
 export prob_any_mol, prob_any_phot, get_exciton_prob, exciton_survival_prob
 export average_energy, average_square_energy, energy_uncertainty, energy_filter!
-export SQuantumWire
 
 const ħ = ustrip(u"eV*ps", CODATA2018.PlanckConstant) / 2π
 const imħ = -im/ħ

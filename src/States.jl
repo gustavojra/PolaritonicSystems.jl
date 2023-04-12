@@ -24,47 +24,6 @@ function time_propagate!(out::Vector, state::Vector, system::QuantumWire, t::Num
     end
 end
 
-function time_propagate(state::Vector, system::SQuantumWire, t::Number)
-
-    ħ = ustrip(u"eV*ps", CODATA2018.PlanckConstant) / 2π
-
-    # Vector to accumulate terms of the Taylor series
-    accum = similar(state)
-
-    # Vector to hold a specific term of the Taylor series
-    term = similar(state)
-
-    n = 1
-    # Common factor 
-    fac = -im*t/ħ
-    U = -(im*t/ħ) .* system.H
-
-    # Zeroth term is just the initial vector
-    accum .= state
-
-    # First term of the series -iδt/ħ H|s⟩
-    #term = fac * (system.H * state)
-    term = U*state
-    accum += term
-
-    println("Stating time propagation...")
-    while √(sum(abs2.(term))) > 1e-10
-        n += 1
-        if n > 100
-            break
-        end
-
-        term = fac/n * (system.H * term)
-        #term = term .- dot(term, accum)
-        #term = U^n * state / factorial(big(n))
-
-        accum += term
-        #normalize!(accum)
-        println("Ite $(n) term residue $(√(sum(abs2.(term))))")
-    end
-    return accum
-end
-
 # Support for units
 function time_propagate(state::Vector, system::QuantumSystem, t::Quantity) 
     time_propagate(state, system, ustrip(u"ps", t))
@@ -100,13 +59,8 @@ function create_exciton_wavepacket(μ::Number, σ::Number, system::QuantumSystem
     # Normalize
     normalize!(locstate)
 
-    if typeof(system) <: QuantumWire
-        # Convert localized (uncoupled) basis to eigenbasis
-        return system.Uix' * locstate
-    end
-    
-    # If SQuantumState, return vector in the local basis
-    return locstate
+    # Convert localized (uncoupled) basis to eigenbasis
+    return system.Uix' * locstate
 end
 
 # Support for units
