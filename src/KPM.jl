@@ -1,0 +1,190 @@
+using LinearAlgebra
+using Distributions
+using FFTW
+
+# Auxiliary function for testing purpuses
+# Returns a eigenvalues and a random Hermitian matri
+function _random_matrix(N; lmin=0, lmax=1)
+
+    λ = lmin .+ lmax .* rand(N)
+
+    x = rand(N,N)
+    U = exp(-im * Hermitian(x))
+
+    @assert U*U' ≈ I
+
+    return λ, U * diagm(λ) * U'
+end
+
+function jackson_kernel(order::Int)
+    N = order+1
+    n = 0:(N-1)
+    return ( (N .- n .+ 1) .* cos.(π .* n / (N+1)) + sin.(π .* n / (N+1)) ./ tan(π / (N+1)) ) / (N+1)
+end
+
+function get_Tn(H, n)
+
+    if n == 0
+        return one(H)
+    elseif n == 1
+        return H
+    end
+
+    Hᵢ = one(H)
+    Hᵢ₊₁ = H
+    for i in 2:n
+        Hᵢ₋₁ = Hᵢ 
+        Hᵢ = Hᵢ₊₁
+        Hᵢ₊₁ = 2*H*Hᵢ - Hᵢ₋₁
+    end
+
+    return Hᵢ₊₁
+end
+
+function eval_cheb(x, n)
+
+    if n == 0
+        return [1]
+    end
+
+    T = zeros(n+1)
+    T[1] = 1
+    T[2] = x
+    for i in 3:(n+1)
+        T[i] = 2*x*T[i-1] - T[i-2]
+    end
+
+    return T
+end
+
+# Computes μn = (1/D)*Tr(Tn(H)) exacly for all μn up to n
+# where D is the dimension of H , Tr is the trace operation, and Tn is the n-th Chebyshev polynomial
+function exact_Tr_Tn(H, n)
+
+    μs = zeros(n+1)
+    Dinv = 1/size(H,1)
+    Hᵢ = one(H)
+    Hᵢ₊₁ = H
+    for i = 0:n
+        if i == 0
+            # For n = 0 Tn = I, thus (1/D)*Tr(I) = 1
+            μs[i+1] = 1
+        elseif i == 1
+            μs[i+1] = Dinv * real.(tr(H))
+        else
+
+            Hᵢ₋₁ = Hᵢ 
+            Hᵢ = Hᵢ₊₁
+            Hᵢ₊₁ = 2*H*Hᵢ - Hᵢ₋₁
+
+            μs[i+1] = Dinv * real.(tr(Hᵢ₊₁))
+        end
+    end
+
+    return μs
+end
+
+function brute_force_reconstruct(μs, xvals)
+
+    out = similar(xvals)
+    out .= 0.0
+
+    for k in eachindex(xvals)
+        xk = xvals[k]
+        pf = 1/(π*sqrt(1-xk^2))
+        Tn = eval_cheb(xk, length(μs)-1)
+        out[k] = pf * (μs[1] + 2 .* dot(μs[2:end], Tn[2:end]))
+    end
+
+    return out
+end
+
+function get_DOS(H, xvals, order)
+
+    μ = exact_Tr_Tn(H, order)
+    gμ = μ .* jackson_kernel(order)
+
+    return brute_force_reconstruct(gμ, xvals)
+end
+
+function get_DOS_μ(H, order, k)
+
+    μs = zeros(ComplexF64, order+1)
+
+    for _ in 1:k
+
+        z = complex_unit(size(H,1))
+        inner!(μs, H, z)
+    end
+
+    return μs ./ (k*size(H,1))
+end
+
+# Merge this functions with DOS?
+function rademacher(n)
+    return rand([-1.0, 1.0], n)
+end
+
+function complex_unit(n)
+    dist = Uniform(0, 2π)
+    return [exp(-im*θ) for θ = rand(dist, n)]
+end
+
+function inner!(μs, A, z0)
+
+    order = length(μs) - 1
+
+    z1 = A*z0
+    ζ0 = z0⋅z0
+    ζ1 = z0⋅z1
+
+    μs[1] += ζ0
+    μs[2] += ζ1
+    μs[3] += 2 * (z1⋅z1) - ζ0
+
+    zⱼ₋₂ = z0
+    zⱼ₋₁ = z1
+    for j = 2:ceil(Int, order/2)
+        zⱼ = 2 * A*zⱼ₋₁ - zⱼ₋₂
+        μs[2j] += 2 * (zⱼ₋₁⋅zⱼ) - ζ1 
+        if 2j == order+1
+            break
+        end
+        μs[2j+1] += 2 * (zⱼ⋅zⱼ) - ζ0 
+
+        zⱼ₋₂ = zⱼ₋₁
+        zⱼ₋₁ = zⱼ
+    end
+
+    return μs
+end
+
+function get_cheb_xk(N)
+    return [cos(π *(k+0.5)/N) for k = 0:(N-1)]
+end
+
+function slow_dct(λs, N=length(λs))
+
+    # Type-II DCT
+    out = zeros(N)
+
+    for k = 0:(N-1)
+        for i = eachindex(λs)
+            n = i - 1
+            out[k+1] += λs[i] * cos(π*(n+1/2)*k/N)
+        end
+    end
+
+    return out
+end
+
+function fast_dct(λs)
+
+    # Get DCT type-II and undo normalization
+    out = dct(λs) .* sqrt(length(λs)/2)
+    out[1] = out[1] * sqrt(2) 
+
+    return out
+end
+
+#function get_γk()
