@@ -117,7 +117,7 @@ function get_DOS_μ(H, order, k)
         inner!(μs, H, z)
     end
 
-    return μs ./ (k*size(H,1))
+    return real.(μs ./ (k*size(H,1)))
 end
 
 # Merge this functions with DOS?
@@ -159,19 +159,38 @@ function inner!(μs, A, z0)
     return μs
 end
 
-function get_cheb_xk(N)
-    return [cos(π *(k+0.5)/N) for k = 0:(N-1)]
+function get_cheb_xk(M)
+    return [cos(π *(k+0.5)/M) for k = 0:(M-1)]
 end
 
-function slow_dct(λs, N=length(λs))
+# M is the number of points where the function will be evaluated over
+function reconstruct(μs, M)
 
-    # Type-II DCT
-    out = zeros(N)
+    γk = slow_dct(μs, M)
+    xk = get_cheb_xk(M)
 
-    for k = 0:(N-1)
-        for i = eachindex(λs)
+    for i in eachindex(γk)
+        γk[i] = γk[i] / (π*sqrt(1-xk[i]^2))
+    end
+
+    return γk
+end
+
+function slow_dct(μs, M=length(μs))
+
+    out = zeros(M)
+
+    for k = 0:(M-1)
+        for i = eachindex(μs)
             n = i - 1
-            out[k+1] += λs[i] * cos(π*(n+1/2)*k/N)
+
+            if n == 0
+                out[k+1] += μs[1] 
+                continue
+            end
+
+            # Type-III DCT
+            out[k+1] += 2 * μs[i] * cos(π*(k+1/2)*n/M)
         end
     end
 
@@ -185,6 +204,15 @@ function fast_dct(λs)
     out[1] = out[1] * sqrt(2) 
 
     return out
+end
+
+function integral_over_μ(g, μs, M)
+
+    γk = slow_dct(μs, M)
+    xk = get_cheb_xk(M)
+    gk = [g(x) for x in xk]
+
+    return (1/M) * (γk ⋅ gk)
 end
 
 #function get_γk()
