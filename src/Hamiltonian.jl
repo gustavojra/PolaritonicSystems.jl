@@ -123,3 +123,37 @@ function build_sparse_hamiltonian(ΩR::Number, ωc::Vector, wvec::Vector, avals:
 
     return sparse(Is, Js, V, Nt, Nt)
 end
+
+# Experimental algorithm
+# Testing new approach to leakage
+function effstates_hamiltonian(ΩR::Number, ωc::Vector, wvec::Vector, avals::Vector, ωMvals::Vector, γ, Γ, nγ; printout=false)
+
+    @assert nγ > 1
+
+    # Total size of the system
+    Nm = length(ωMvals)
+    Nc = length(ωc)
+    Nt = Nc + Nm + nγ
+
+    H = zeros(ComplexF64, Nt, Nt)
+
+    r = 1:(Nm+Nc)
+    H[r,r] .= build_hamiltonian(ΩR, ωc, wvec, avals, ωMvals; printout=printout)
+
+    printout ? output("Computing effective external cavity states") : nothing
+
+    # Coupling between cavity modes and sink mode
+    s = Nc+Nm+1 # Sink mode index
+    for i = 1:Nc
+        H[i,s] = γ
+        H[s,i] = γ'
+    end
+
+    # Coupling between trap modes
+    for i = s:(Nt-1)
+        H[i,i+1] = Γ
+        H[i+1,i] = Γ'
+    end
+
+    return Hermitian(H)
+end

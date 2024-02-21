@@ -215,4 +215,14 @@ function integral_over_μ(g, μs, M)
     return (1/M) * (γk ⋅ gk)
 end
 
-#function get_γk()
+function exact_Z(H, β)
+    tr(exp(-β.*H))
+end
+
+function approx_Z(H, β, o)
+    μs = get_DOS_μ(H, o, 20)
+    mus = μs .* jackson_kernel(o)
+    # adding plus one here because of the negative energies...
+    return integral_over_μ(x->exp(-β*(x+1)), mus, 2*o)
+end
+

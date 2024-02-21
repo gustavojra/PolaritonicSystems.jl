@@ -298,3 +298,6 @@ function get_wire_modes(Nc, Lx, ny, Ly, nz, Lz, ϵ;
 
     return wvec, ωc
 end
+
+# Leaky hamiltonian using effective states approach
+include("Leaky.jl")
