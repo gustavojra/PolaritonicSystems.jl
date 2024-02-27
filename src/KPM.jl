@@ -120,6 +120,62 @@ function get_DOS_μ(H, order, k)
     return real.(μs ./ (k*size(H,1)))
 end
 
+function get_local_DOS_μ(H, i::Int, order::Int)
+
+    # Initialize α0 and α1 = H⋅α0
+    α0 = similar(H, size(H, 1))
+    α0 .= 0.0
+    α0[i] = 1.0
+
+    μs = similar(H, order+1)
+    μs .= 0.0
+
+    inner!(μs, H, α0)
+
+    return  μs ./ size(H,1)
+end
+
+function get_local_DOS_μ(H, is::AbstractVector, order::Int)
+
+    μs = zeros(eltype(H), order+1, length(is))
+    μs .= 0.0
+    α0 = similar(H, size(H, 1))
+
+    for (n,i) in enumerate(is)
+        # Initialize α0 and α1 = H⋅α0
+        α0 .= 0.0
+        α0[i] = 1.0
+
+        inner!(@view(μs[:,n]), H, α0)
+    end
+
+    return  μs ./ size(H,1)
+end
+
+function brute_force_LDOS(H, order)
+
+    μs = zeros(eltype(H), size(H,1), order+1)
+    Dinv = 1/size(H,1)
+    Hᵢ = one(H)
+    Hᵢ₊₁ = H
+    for i = 0:order
+        if i == 0
+            μs[:, i+1] .= Dinv
+        elseif i == 1
+            μs[:, i+1] .= Dinv * diag(H)
+        else
+
+            Hᵢ₋₁ = Hᵢ 
+            Hᵢ = Hᵢ₊₁
+            Hᵢ₊₁ = 2*H*Hᵢ - Hᵢ₋₁
+
+            μs[:, i+1] .= Dinv * diag(Hᵢ₊₁)
+        end
+    end
+
+    return μs
+end
+
 # Merge this functions with DOS?
 function rademacher(n)
     return rand([-1.0, 1.0], n)
