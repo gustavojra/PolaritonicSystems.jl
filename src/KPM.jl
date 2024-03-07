@@ -1,6 +1,9 @@
+module KPM
 using LinearAlgebra
 using Distributions
 using FFTW
+using KrylovKit
+using SparseArrays
 
 # Auxiliary function for testing purpuses
 # Returns a eigenvalues and a random Hermitian matri
@@ -16,10 +19,41 @@ function _random_matrix(N; lmin=0, lmax=1)
     return λ, U * diagm(λ) * U'
 end
 
+function build_H(N, t, W)
+           
+    H = zeros(N, N)
+    
+    for i in 1:N
+        H[i,i] = rand(Uniform(-W,W))
+    end
+    
+    for i in 1:(N-1)
+        H[i,i+1] = -1.0
+        H[i+1,i] = -1.0
+    end
+
+    sH = sparse(H)
+    
+    Emax = eigsolve(sH, 1, :LR)[1][1]
+    Emin = eigsolve(sH, 1, :SR)[1][1]
+    a = (Emax - Emin) / (2 - 0.01)
+    b = (Emax + Emin) / 2
+
+    return sparse((sH - b*I) ./ a)
+end
+
 function jackson_kernel(order::Int)
     N = order+1
     n = 0:(N-1)
     return ( (N .- n .+ 1) .* cos.(π .* n / (N+1)) + sin.(π .* n / (N+1)) ./ tan(π / (N+1)) ) / (N+1)
+end
+
+function apply_jackson_kernel!(μs)
+    N = length(μs)
+
+    for n in 0:(N-1)
+        μs[n+1] *= ((N - n + 1) * cos(π*n/(N+1)) + sin(π*n/(N+1)) / tan(π/(N+1)) ) / (N+1)
+    end
 end
 
 function get_Tn(H, n)
@@ -84,22 +118,41 @@ function exact_Tr_Tn(H, n)
     return μs
 end
 
-function brute_force_reconstruct(μs, xvals)
+function get_DOS(H, order, k; jackson=true)
 
-    out = similar(xvals)
-    out .= 0.0
+    mus = get_DOS_μ(H, order, k)
 
-    for k in eachindex(xvals)
-        xk = xvals[k]
-        pf = 1/(π*sqrt(1-xk^2))
-        Tn = eval_cheb(xk, length(μs)-1)
-        out[k] = pf * (μs[1] + 2 .* dot(μs[2:end], Tn[2:end]))
+    if jackson
+        apply_jackson_kernel!(mus)
+    end
+
+    return reconstruct(mus)
+end
+
+function get_LDOS(H, i, order; jackson=true)
+
+    mus = get_local_DOS_μ(H, i, order)
+
+    if jackson
+        apply_jackson_kernel!(mus)
+    end
+
+    return reconstruct(mus)
+end
+
+function get_full_LDOS(H, order; jackson=true)
+
+    Nsites = size(H,1)
+
+    out = zeros(order+1, Nsites)
+    for i in 1:Nsites
+        out[:, i] = get_LDOS(H, i, order, jackson=jackson)
     end
 
     return out
 end
 
-function get_DOS(H, xvals, order)
+function get_bf_DOS(H, xvals, order)
 
     μ = exact_Tr_Tn(H, order)
     gμ = μ .* jackson_kernel(order)
@@ -123,11 +176,11 @@ end
 function get_local_DOS_μ(H, i::Int, order::Int)
 
     # Initialize α0 and α1 = H⋅α0
-    α0 = similar(H, size(H, 1))
+    α0 = zeros(eltype(H), size(H,1))
     α0 .= 0.0
     α0[i] = 1.0
 
-    μs = similar(H, order+1)
+    μs = zeros(eltype(H), order+1)
     μs .= 0.0
 
     inner!(μs, H, α0)
@@ -135,6 +188,7 @@ function get_local_DOS_μ(H, i::Int, order::Int)
     return  μs ./ size(H,1)
 end
 
+# SLOW AF
 function get_local_DOS_μ(H, is::AbstractVector, order::Int)
 
     μs = zeros(eltype(H), order+1, length(is))
@@ -220,10 +274,10 @@ function get_cheb_xk(M)
 end
 
 # M is the number of points where the function will be evaluated over
-function reconstruct(μs, M)
+function reconstruct(μs)
 
-    γk = slow_dct(μs, M)
-    xk = get_cheb_xk(M)
+    γk = FFTW.r2r(μs, FFTW.REDFT01)
+    xk = get_cheb_xk(length(μs))
 
     for i in eachindex(γk)
         γk[i] = γk[i] / (π*sqrt(1-xk[i]^2))
@@ -253,15 +307,6 @@ function slow_dct(μs, M=length(μs))
     return out
 end
 
-function fast_dct(λs)
-
-    # Get DCT type-II and undo normalization
-    out = dct(λs) .* sqrt(length(λs)/2)
-    out[1] = out[1] * sqrt(2) 
-
-    return out
-end
-
 function integral_over_μ(g, μs, M)
 
     γk = slow_dct(μs, M)
@@ -282,3 +327,4 @@ function approx_Z(H, β, o)
     return integral_over_μ(x->exp(-β*(x+1)), mus, 2*o)
 end
 
+end #module
