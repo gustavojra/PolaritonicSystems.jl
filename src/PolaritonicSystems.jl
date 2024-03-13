@@ -57,6 +57,6 @@ include("States.jl")
 # Observables (measurements) and time propagation is implemented here
 include("Observables.jl")
 
-include("KPM.jl")
+include("KPM/KPM.jl")
 
 end # module
