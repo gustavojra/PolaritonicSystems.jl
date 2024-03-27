@@ -45,6 +45,19 @@ function get_DOS_μ(H, order, k)
     return real.(μs ./ (k*size(H,1)))
 end
 
+function get_DOS_μ(H::SparseMatrixCSC, order, k)
+
+    μs = [zeros(ComplexF64, order+1) for i in 1:Threads.nthreads()]
+
+    Threads.@threads for _ in 1:k
+
+        z = complex_unit(size(H,1))
+        inner!(μs[Threads.threadid()], H, z)
+    end
+
+    return real.(sum(μs) ./ (k*size(H,1)))
+end
+
 function get_LDOS_μ(H, i::Int, order::Int)
 
     # Initialize α0 and α1 = H⋅α0

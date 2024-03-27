@@ -1,4 +1,5 @@
 using LinearAlgebra
+using KrylovKit
 
 """
     cheb_Tn(H, n)
@@ -79,3 +80,12 @@ function trace_Tn(H, n)
 
     return out
 end
+
+function cheb_scale!(H; ϵ=0.01)
+    Emin = eigsolve(H, 1, :SR)[1][1]
+    Emax = eigsolve(H, 1, :LR)[1][1]
+    a = (Emax - Emin) / (2 - ϵ)
+    b = (Emax + Emin) / 2
+    H .= (H - b*I) ./ a
+end
+
