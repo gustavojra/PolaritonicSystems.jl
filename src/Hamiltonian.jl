@@ -1,4 +1,4 @@
-using Base
+import Base: *
 using LinearAlgebra
 
 struct SymBlockArrowHead{T}
@@ -8,7 +8,6 @@ struct SymBlockArrowHead{T}
     r1::UnitRange{Int64}
     r2::UnitRange{Int64}
 end
-
 
 function *(A::SymBlockArrowHead, v::Vector)
 
@@ -89,6 +88,68 @@ function build_hamiltonian(ΩR::Number, ωc::Vector, wvec::Vector, avals::Vector
     return Hermitian(H)
 end
 
+function build_bah_hamiltonian(ΩR::Float64, ωc::Vector{Float64}, wvec::Vector{Float64}, avals::Vector{Float64}, ωMvals::Vector{Float64}; printout=false)
+    if printout
+        output("\n## Constructing Hamiltonian Matrix")
+        output("Allocating memory... "; ending="")
+    end
+    d = zeros(ComplexF64, length(ωMvals)+length(ωc)) 
+    X = zeros(ComplexF64, length(ωMvals), length(ωc)) 
+    printout ? output("Done.") : nothing
+    return build_bah_hamiltonian!(d, X, ΩR, ωc, wvec, avals, ωMvals, printout=printout)
+end
+
+function build_bah_hamiltonian(ΩR::Float32, ωc::Vector{Float32}, wvec::Vector{Float32}, avals::Vector{Float32}, ωMvals::Vector{Float32}; printout=false)
+    if printout
+        output("\n## Constructing Hamiltonian Matrix")
+        output("Allocating memory... "; ending="")
+    end
+    d = zeros(ComplexF32, length(ωMvals)+length(ωc)) 
+    X = zeros(ComplexF32, length(ωMvals), length(ωc)) 
+    printout ? output("Done.") : nothing
+    return build_bah_hamiltonian!(d, X, ΩR, ωc, wvec, avals, ωMvals, printout=printout)
+end
+
+function build_bah_hamiltonian!(d::Vector{T2}, X::Matrix{T2}, ΩR::T, ωc::Vector{T}, wvec::Vector{T}, 
+                                avals::Vector{T}, ωMvals::Vector{T}; printout=false) where {T2 <: Complex, T <: AbstractFloat}
+
+    @assert length(ωMvals) == length(avals)
+
+    ### 1. INITIALIZE HAMILTONIAN
+
+    # Total size of the system
+    Nm = length(ωMvals)
+    Nc = length(ωc)
+
+    ### 2. POPULATE DIAGONAL
+    printout ? output("Populating diagonal... ", ending="") : nothing
+    # Cavity energies
+    for i = 1:Nc
+        d[i] = ωc[i]
+    end
+
+    # Molecule energies
+    for i = 1:Nm
+        d[i+Nc] = ωMvals[i]
+    end
+    printout ? output("Done.") : nothing
+
+    ### 3. POPULATE OFF-DIAGONAL
+    printout ? output("Populating off-diagonal... ", ending="") : nothing
+
+    # Fill off-diagonal terms with i < j
+    # No need to fill j < i as we will declare the matrix Hermitian
+    for i = 1:Nm
+        for j = 1:Nc
+            pf = im * 0.5 * ΩR * √(ωMvals[i]/(Nm*ωc[j])) # LM interaction Prefactor
+            x = avals[i]                                  # Position of the j-th molecule
+            X[i,j] = pf * exp(-im * wvec[j] *x)
+        end
+    end
+    printout ? output("Done.") : nothing
+
+    return SymBlockArrowHead(d, X, Nc+Nm, 1:Nc, (Nc+1):(Nc+Nm))
+end
 
 function build_sparse_hamiltonian(ΩR::Number, ωc::Vector, wvec::Vector, avals::Vector, ωMvals::Vector; printout=false)
 

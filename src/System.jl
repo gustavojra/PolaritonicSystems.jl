@@ -199,25 +199,32 @@ separation of a. Return an array of molecular energies and an array of positions
 | σa             |  Radiation quantum number associated with Z coordinate.                                           |
 | afirst         |  KEYWORD ARGUMENT. Fixed position of the first molecule in the wire. Default: 0.0                 |
 """
-function get_wire_molecules(Nm, ωM, σM, a, σa; afirst=0.0)
+function get_wire_molecules(Nm, ωM, σM, a, σa; afirst=0.0, T=Float64, dist="normal")
 
-    # Create an array of energy values for molecules using a normal distribution 
-    ωMvals = rand(Normal(ωM, σM), Nm)
+    ωMvals = zeros(T, Nm)
 
-    attempts = 1
-    while minimum(ωMvals) < 0.0
-        attempts += 1
-        if attempts > 10
-            error("Could not produce a Gaussian energy distribution without negative energies for ωM = $ωM and σM = $σM")
+    if lowercase(string(dist)) == "normal"
+        # Create an array of energy values for molecules using a normal distribution 
+        ωMvals .= rand(Normal(ωM, σM), Nm)
+        attempts = 1
+        while minimum(ωMvals) < 0.0
+            attempts += 1
+            if attempts > 10
+                error("Could not produce a Gaussian energy distribution without negative energies for ωM = $ωM and σM = $σM")
+            end
+            ωMvals = rand(Normal(ωM, σM), Nm)
         end
-        ωMvals = rand(Normal(ωM, σM), Nm)
+    elseif lowercase(string(dist)) == "uniform"
+        ωMvals .= σM != 0 ? rand(Uniform(ωM - σM, ωM + σM), Nm) : ωM
+    else
+        error("Distribution option $dist invalid for static disorder.")
     end
 
     # Create an array with molecular positions uniformily spaces by `a` nm 
     # Plus a random deviation sampled from a normal distribution
     @assert Nm > 1
 
-    avals = zeros(Nm)
+    avals = zeros(T, Nm)
 
     for i = 2:Nm # Note that the first molecule is fixed at x = 0
         avals[i] = (i-1)*a + rand(Normal(0, σa)) + afirst
@@ -252,7 +259,7 @@ of nm⁻¹ and energies in eV.
 | positive_only  |  KEYWORD ARGUMENT. If `true`, returns only modes with q > 0. Default: false.                      |
 
 """
-function get_wire_modes(Nc, Lx, ny, Ly, nz, Lz, ϵ;  
+function get_wire_modes(Nc, Lx, ny, Ly, nz, Lz, ϵ; T = Float64,
     c = ustrip(u"nm/ps", CODATA2018.SpeedOfLightInVacuum), ħ = ustrip(u"eV*ps", CODATA2018.PlanckConstant)/2π, positive_only=false)
 
     # Compute the wavenumber component associated with y and z directions.
@@ -261,8 +268,8 @@ function get_wire_modes(Nc, Lx, ny, Ly, nz, Lz, ϵ;
     # Prepare a vector with cavity energies and wavevectors. 
     if !positive_only
         Ncm = 2*Nc + 1
-        wvec = zeros(Ncm)
-        ωc = zeros(Ncm)
+        wvec = zeros(T, Ncm)
+        ωc = zeros(T, Ncm)
         wvec[1] = 0.0       # Minimal wavevector qx = 0
         ωc[1]   = ħ*c*q₀/√ϵ # Energy for qx = 0
         n = 2
@@ -282,8 +289,8 @@ function get_wire_modes(Nc, Lx, ny, Ly, nz, Lz, ϵ;
     else
         # Include only positive components of the wavevector
         Ncm = Nc + 1
-        wvec = zeros(Ncm)
-        ωc = zeros(Ncm)
+        wvec = zeros(T, Ncm)
+        ωc = zeros(T, Ncm)
         wvec[1] = 0.0       # Minimal wavevector qx = 0
         ωc[1]   = ħ*c*q₀/√ϵ # Energy for qx = 0
         n = 2
@@ -309,18 +316,21 @@ function qw_num_modes_under(Emax, Lx, ny, Ly, nz, Lz, ϵ;
     return Int(ceil(Lx*ζ))
 end
 
-
-function build_qw_hamiltonian(;ΩR, Nm, a, Em, Ecmax, ny, Ly, nz, Lz, ϵ, σM=0, σa=0, sparse=false)
+function build_qw_hamiltonian(;ΩR, Nm, a, Em, Ecmax, ny, Ly, nz, Lz, ϵ, σM=0, σa=0, htype=:dense, dtype=Float64, dist="normal")
 
     Nc = qw_num_modes_under(Ecmax, Nm*a, ny, Ly, nz, Lz, ϵ)
-    wvec, ωc = get_wire_modes(Nc, Nm*a, ny, Ly, nz, Lz, ϵ)
+    wvec, ωc = get_wire_modes(Nc, Nm*a, ny, Ly, nz, Lz, ϵ, T=dtype)
 
-    ωMvals, avals = get_wire_molecules(Nm, Em, σM, a, σa)
+    ωMvals, avals = get_wire_molecules(Nm, Em, σM, a, σa, T=dtype, dist=dist)
 
-    if sparse
-        return build_sparse_hamiltonian(ΩR, ωc, wvec, avals, ωMvals)
+    if string(htype) == "dense"
+        return build_hamiltonian(dtype(ΩR), ωc, wvec, avals, ωMvals)
+    elseif string(htype) == "sparse"
+        return build_sparse_hamiltonian(dtype(ΩR), ωc, wvec, avals, ωMvals)
+    elseif string(htype) == "blockarrowhead"
+        return build_bah_hamiltonian(dtype(ΩR), ωc, wvec, avals, ωMvals)
     else
-        return build_hamiltonian(ΩR, ωc, wvec, avals, ωMvals)
+        error("$htype not recognized as a Hamiltonian type.")
     end
 end
 
