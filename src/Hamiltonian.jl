@@ -39,7 +39,7 @@ Units are assumed to be eV for energy and nm for length.
 | avals     | Vector   | Vector containing molecular positions along the wire.                                             |
 | ωMvals    | Vector   | Vector containing molecular excitation energies.                                                  |
 """
-function build_hamiltonian(ΩR::Number, ωc::Vector, wvec::Vector, avals::Vector, ωMvals::Vector; printout=false)
+function build_hamiltonian(ΩR::T, ωc::Vector, wvec::Vector, avals::Vector, ωMvals::Vector; printout=false) where T <: AbstractFloat
 
     @assert length(ωMvals) == length(avals)
 
@@ -54,7 +54,7 @@ function build_hamiltonian(ΩR::Number, ωc::Vector, wvec::Vector, avals::Vector
         output("\n## Constructing Hamiltonian Matrix")
         output("Allocating memory... "; ending="")
     end
-    H = zeros(ComplexF64, Nt, Nt)
+    H = zeros(complex(T), Nt, Nt)
     printout ? output("Done.") : nothing
 
     ### 2. POPULATE DIAGONAL
@@ -151,7 +151,7 @@ function build_bah_hamiltonian!(d::Vector{T2}, X::Matrix{T2}, ΩR::T, ωc::Vecto
     return SymBlockArrowHead(d, X, Nc+Nm, 1:Nc, (Nc+1):(Nc+Nm))
 end
 
-function build_sparse_hamiltonian(ΩR::Number, ωc::Vector, wvec::Vector, avals::Vector, ωMvals::Vector; printout=false)
+function build_sparse_hamiltonian(ΩR::T, ωc::Vector, wvec::Vector, avals::Vector, ωMvals::Vector; printout=false) where T <: AbstractFloat
 
     @assert length(ωMvals) == length(avals)
 
@@ -170,7 +170,8 @@ function build_sparse_hamiltonian(ΩR::Number, ωc::Vector, wvec::Vector, avals:
 
     Is = Int[]
     Js = Int[]
-    V = ComplexF64[]
+    # Create an array of values with data type matching ΩR, except that it is complex
+    V = complex(T)[]
 
     ### 2. POPULATE DIAGONAL
     # Cavity energies
