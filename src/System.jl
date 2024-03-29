@@ -299,5 +299,30 @@ function get_wire_modes(Nc, Lx, ny, Ly, nz, Lz, ϵ;
     return wvec, ωc
 end
 
+function qw_num_modes_under(Emax, Lx, ny, Ly, nz, Lz, ϵ;
+    c = ustrip(u"nm/ps", CODATA2018.SpeedOfLightInVacuum), ħ = ustrip(u"eV*ps", CODATA2018.PlanckConstant)/2π)
+
+    # Compute the wavenumber component associated with y and z directions.
+    q₀ = √((nz*π/Lz)^2 + (ny*π/Ly)^2)
+
+    ζ = sqrt(ϵ*(Emax/(ħ*c))^2 - q₀^2) / 2π
+    return Int(ceil(Lx*ζ))
+end
+
+
+function build_qw_hamiltonian(;ΩR, Nm, a, Em, Ecmax, ny, Ly, nz, Lz, ϵ, σM=0, σa=0, sparse=false)
+
+    Nc = qw_num_modes_under(Ecmax, Nm*a, ny, Ly, nz, Lz, ϵ)
+    wvec, ωc = get_wire_modes(Nc, Nm*a, ny, Ly, nz, Lz, ϵ)
+
+    ωMvals, avals = get_wire_molecules(Nm, Em, σM, a, σa)
+
+    if sparse
+        return build_sparse_hamiltonian(ΩR, ωc, wvec, avals, ωMvals)
+    else
+        return build_hamiltonian(ΩR, ωc, wvec, avals, ωMvals)
+    end
+end
+
 # Leaky hamiltonian using effective states approach
 include("Leaky.jl")

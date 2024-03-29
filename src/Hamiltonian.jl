@@ -1,3 +1,28 @@
+using Base
+using LinearAlgebra
+
+struct SymBlockArrowHead{T}
+    d::Vector{T}
+    X::Matrix{T}
+    l::Int
+    r1::UnitRange{Int64}
+    r2::UnitRange{Int64}
+end
+
+
+function *(A::SymBlockArrowHead, v::Vector)
+
+    if length(v) != A.l
+        throw(DimensionMismatch("dimension of the vector [$(length(v))] does not match the required by the block arrowhead matrix [$(A.l)]"))
+    end
+
+    out = A.d .* v
+    out[A.r2] .+= A.X * v[A.r1]
+    out[A.r1] .+= A.X' * v[A.r2]
+
+    return out
+end
+
 """
     build_hamiltonian
 
@@ -63,6 +88,7 @@ function build_hamiltonian(ΩR::Number, ωc::Vector, wvec::Vector, avals::Vector
 
     return Hermitian(H)
 end
+
 
 function build_sparse_hamiltonian(ΩR::Number, ωc::Vector, wvec::Vector, avals::Vector, ωMvals::Vector; printout=false)
 
