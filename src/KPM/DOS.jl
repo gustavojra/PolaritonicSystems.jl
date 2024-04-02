@@ -32,13 +32,12 @@ end
     #return out
 #end
 
-function get_DOS_μ(H, order, k)
+function get_DOS_μ(H::AbstractArray{T,2}, order, k) where T
 
-    μs = zeros(ComplexF64, order+1)
+    μs = zeros(T, order+1)
 
     for _ in 1:k
-
-        z = complex_unit(size(H,1))
+        z = T.(complex_unit(size(H,1)))
         inner!(μs, H, z)
     end
 

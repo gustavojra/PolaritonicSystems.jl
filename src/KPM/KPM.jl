@@ -10,8 +10,8 @@ using SparseArrays
 
 Returns a vector of length n with a Rademacher distribution, i.e. random entries of -1 and 1 with equal probability.
 """
-function rademacher(n)
-    return rand([-1.0, 1.0], n)
+function rademacher(n; T=Float64)
+    return rand([-one(T), one(T)], n)
 end
 
 """
@@ -19,7 +19,7 @@ end
 
 Returns a vector where each entry is exp(-im*θ) where θ is draw from a uniform distribution [0, 2π]
 """
-function complex_unit(n)
+function complex_unit(n; T=Float64)
     dist = Uniform(0, 2π)
     return [exp(-im*θ) for θ = rand(dist, n)]
 end
@@ -45,7 +45,7 @@ function inner!(out, A, z0)
     zⱼ₋₂ = z0
     zⱼ₋₁ = z1
     for j = 2:ceil(Int, order/2)
-        zⱼ = 2 * A*zⱼ₋₁ - zⱼ₋₂
+        zⱼ = 2 * (A*zⱼ₋₁) - zⱼ₋₂
         out[2j] += 2 * (zⱼ₋₁⋅zⱼ) - ζ1 
         if 2j == order+1
             break

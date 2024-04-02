@@ -1,10 +1,10 @@
-import Base: *
+import Base: *, size
 using LinearAlgebra
 
-struct SymBlockArrowHead{T}
+struct SymBlockArrowHead{T} <: AbstractMatrix{T}
     d::Vector{T}
     X::Matrix{T}
-    l::Int
+    l::Int64
     r1::UnitRange{Int64}
     r2::UnitRange{Int64}
 end
@@ -20,6 +20,36 @@ function *(A::SymBlockArrowHead, v::Vector)
     out[A.r1] .+= A.X' * v[A.r2]
 
     return out
+end
+
+function size(A::SymBlockArrowHead, N::Integer)
+    if N > 2
+        return 1
+    else
+        return A.l
+    end
+end
+
+function size(A::SymBlockArrowHead)
+    return size(A, 1), size(A, 2)
+end
+
+function Base.getindex(A::SymBlockArrowHead, i::Int, j::Int)
+    if i == j 
+        return A.d[i]
+    elseif i in A.r1 && j in A.r1
+        return 0.0
+    elseif i in A.r2 && j in A.r2
+        return 0.0
+    elseif i in A.r2 && j in A.r1
+        return A.X[i - length(A.r1), j]
+    elseif i in A.r1 && j in A.r2
+        return conj(A.X[j - length(A.r1), i])
+    end
+end
+
+function LinearAlgebra.ishermitian(A::SymBlockArrowHead{T}) where T
+    return true
 end
 
 """
@@ -143,7 +173,7 @@ function build_bah_hamiltonian!(d::Vector{T2}, X::Matrix{T2}, ΩR::T, ωc::Vecto
         for j = 1:Nc
             pf = im * 0.5 * ΩR * √(ωMvals[i]/(Nm*ωc[j])) # LM interaction Prefactor
             x = avals[i]                                  # Position of the j-th molecule
-            X[i,j] = pf * exp(-im * wvec[j] *x)
+            X[i,j] = pf * exp(im * wvec[j] *x)
         end
     end
     printout ? output("Done.") : nothing
