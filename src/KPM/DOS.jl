@@ -20,17 +20,16 @@ function LDOS(H, i, order; jackson=true)
     return reconstruct(mus)
 end
 
-#function get_full_LDOS(H, order; jackson=true)
+function LDOS(H, i, order, k; jackson=true)
 
-    #Nsites = size(H,1)
+    mus = get_LDOS_μ(H, i, order, k)
 
-    #out = zeros(order+1, Nsites)
-    #for i in 1:Nsites
-        #out[:, i] = get_LDOS(H, i, order, jackson=jackson)
-    #end
+    if jackson
+        apply_jackson_kernel!(mus)
+    end
 
-    #return out
-#end
+    return reconstruct(mus)
+end
 
 function get_DOS_μ(H::AbstractArray{T,2}, order, k) where T
 
@@ -57,12 +56,12 @@ function get_DOS_μ(H::SparseMatrixCSC, order, k)
     return real.(sum(μs) ./ (k*size(H,1)))
 end
 
-function get_LDOS_μ(H, i::Int, order::Int)
+function get_LDOS_μ(H::AbstractArray{T}, i::Int, order::Int) where T
 
     # Initialize α0 and α1 = H⋅α0
-    α0 = sparsevec([i], [1.0], size(H,1))
+    α0 = sparsevec([i], [one(T)], size(H,1))
 
-    μs = zeros(eltype(H), order+1)
+    μs = zeros(T, order+1)
     μs .= 0.0
 
     inner!(μs, H, α0)
@@ -70,22 +69,16 @@ function get_LDOS_μ(H, i::Int, order::Int)
     return  μs ./ size(H,1)
 end
 
-# SLOW AF
-function get_local_DOS_μ(H, is::AbstractVector, order::Int)
+function get_LDOS_μ(H::AbstractArray{T}, is::AbstractVector, order::Int, k::Int) where T
 
-    μs = zeros(eltype(H), order+1, length(is))
-    μs .= 0.0
-    α0 = similar(H, size(H, 1))
+    μs = zeros(T, order+1)
 
-    for (n,i) in enumerate(is)
-        # Initialize α0 and α1 = H⋅α0
-        α0 .= 0.0
-        α0[i] = 1.0
-
-        inner!(@view(μs[:,n]), H, α0)
+    for _ in 1:k
+        z = T.(complex_unit(size(H,1), is))
+        inner!(μs, H, z)
     end
 
-    return  μs ./ size(H,1)
+    return real.(μs ./ (k*size(H,1)))
 end
 
 function brute_force_LDOS(H, order)

@@ -19,9 +19,19 @@ end
 
 Returns a vector where each entry is exp(-im*θ) where θ is draw from a uniform distribution [0, 2π]
 """
-function complex_unit(n; T=Float64)
+function complex_unit(n)
     dist = Uniform(0, 2π)
     return [exp(-im*θ) for θ = rand(dist, n)]
+end
+
+function complex_unit(n, r)
+    dist = Uniform(0, 2π)
+    out = zeros(ComplexF64, n)
+    for i in r
+        θ = rand(dist) 
+        out[i] = exp(-im*θ)
+    end
+    return out
 end
 
 """
