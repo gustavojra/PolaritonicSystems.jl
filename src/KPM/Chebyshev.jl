@@ -90,12 +90,12 @@ function cheb_scale!(H; ϵ=0.01)
     H .= (H - b*I) ./ a
 end
 
-function cheb_scale(H; ϵ=0.01)
+function cheb_scale(H::AbstractArray{T}; ϵ=0.01) where T
     Emin = eigsolve(H, 1, :SR)[1][1]
     Emax = eigsolve(H, 1, :LR)[1][1]
-    a = (Emax - Emin) / (2 - ϵ)
-    b = (Emax + Emin) / 2
-    return (H - b*I) ./ a
+    a = T.((Emax - Emin) / (2 - ϵ))
+    b = T.((Emax + Emin) / 2)
+    return (H - b*I) ./ a, a, b
 end
 
 function cheb_scale!(H::SymBlockArrowHead; ϵ=0.01)
@@ -115,5 +115,9 @@ function cheb_scale(H::SymBlockArrowHead; ϵ=0.01)
     b = (Emax + Emin) / 2
     newd = (H.d .- b) ./ a
     newX = H.X ./ a
-    return SymBlockArrowHead(newd, newX, H.l, H.r1, H.r2)
+    return SymBlockArrowHead(newd, newX, H.l, H.r1, H.r2), a, b
+end
+
+function cheb_undo_scale(v::Vector, a, b)
+    return a .* v .+ b
 end
