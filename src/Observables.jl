@@ -234,3 +234,42 @@ function eigenvector_spread(sys::QuantumWire)
 
     return out
 end
+
+function DOS(sys::QuantumWire, δE)
+    return DOS(sys.evals, δE)
+end
+
+function DOS(H, δE)
+    e, _ = eigen(H)
+    return DOS(e, δE)
+end
+
+function DOS(evals::Vector, δE)
+    Emin = minimum(evals)
+    Emax = maximum(evals) + 0.01
+    invD = 1 / length(evals)
+
+    Elims = range(start=Emin, stop=Emax, step=δE)
+    ρ = zeros(length(Elims)-1)
+    Ebars = zeros(length(Elims)-1)
+
+    for i in eachindex(Elims)
+        if i == length(Elims)
+            break
+        end
+
+        Ebars[i] = 0.5*(Elims[i] + Elims[i+1])
+        ρ[i] = count(x-> x ≥ Elims[i] && x < Elims[i+1], evals)
+    end
+
+    N = 1 / (δE*sum(ρ))
+
+    return Ebars, N .* ρ
+end
+
+
+
+
+
+
+
