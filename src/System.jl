@@ -323,11 +323,11 @@ function build_qw_hamiltonian(;ΩR, Nm, a, Em, Ecmax, ny, Ly, nz, Lz, ϵ, σM=0,
 
     ωMvals, avals = get_wire_molecules(Nm, Em, σM, a, σa, T=dtype, dist=dist)
 
-    if string(htype) == "dense"
+    if string(lowercase(htype)) == "dense"
         return build_hamiltonian(dtype(ΩR), ωc, wvec, avals, ωMvals)
-    elseif string(htype) == "sparse"
+    elseif string(lowercase(htype)) == "sparse"
         return build_sparse_hamiltonian(dtype(ΩR), ωc, wvec, avals, ωMvals)
-    elseif string(htype) == "blockarrowhead"
+    elseif string(lowercase(htype)) == "blockarrowhead"
         return build_bah_hamiltonian(dtype(ΩR), ωc, wvec, avals, ωMvals)
     else
         error("$htype not recognized as a Hamiltonian type.")

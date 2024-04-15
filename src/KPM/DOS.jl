@@ -43,13 +43,13 @@ function get_DOS_μ(H::AbstractArray{T,2}, order, k) where T
     return real.(μs ./ (k*size(H,1)))
 end
 
-function get_DOS_μ(H::SparseMatrixCSC, order, k)
+function get_DOS_μ(H::SparseMatrixCSC{T}, order, k) where T
 
-    μs = [zeros(ComplexF64, order+1) for i in 1:Threads.nthreads()]
+    μs = [zeros(T, order+1) for i in 1:Threads.nthreads()]
 
     Threads.@threads for _ in 1:k
 
-        z = complex_unit(size(H,1))
+        z = T.(complex_unit(size(H,1)))
         inner!(μs[Threads.threadid()], H, z)
     end
 
@@ -66,7 +66,21 @@ function get_LDOS_μ(H::AbstractArray{T}, i::Int, order::Int) where T
 
     inner!(μs, H, α0)
 
-    return  μs ./ size(H,1)
+    return  real.(μs ./ size(H,1))
+end
+
+function get_LDOS_μ(H::SymBlockArrowHead{T}, i::Int, order::Int) where T
+
+    # Initialize α0 and α1 = H⋅α0
+    α0 = zeros(T, size(H,1))
+    α0[i] = 1.0
+
+    μs = zeros(T, order+1)
+    μs .= 0.0
+
+    inner!(μs, H, α0)
+
+    return  real.(μs ./ size(H,1))
 end
 
 function get_LDOS_μ(H::AbstractArray{T}, is::AbstractVector, order::Int, k::Int) where T
