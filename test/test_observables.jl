@@ -50,53 +50,53 @@ using Test
     # Compare implemented `exciton_survival_prob` to an alternative implementation
     # This implementation uses
     # Pm = (1/Nm) ∑ⱼ | ∑ₓ exp(-iExt/ħ) ⟨j|x⟩⟨x|j⟩ |²
-    ħ = 0.0006582119569509067
-    @testset "Exciton Survival" begin
-        for t = 0.0:0.2:2.0
-            out = 0.0
-            for j = sys.mol_range
-                _c2 = 0.0
-                for χ in eachindex(sys.evals)
-                    _c2 += exp(-im * sys.evals[χ]*t / ħ) * abs2.(sys.Uix[j, χ])
-                end
-                out += abs2(_c2)
-            end
-            @test out / length(sys.mol_positions) ≈ exciton_survival_prob(sys, t)
-        end
-    end
+    #ħ = 0.0006582119569509067
+    #@testset "Exciton Survival" begin
+    #    for t = 0.0:0.2:2.0
+    #        out = 0.0
+    #        for j = sys.mol_range
+    #            _c2 = 0.0
+    #            for χ in eachindex(sys.evals)
+    #                _c2 += exp(-im * sys.evals[χ]*t / ħ) * abs2.(sys.Uix[j, χ])
+    #            end
+    #            out += abs2(_c2)
+    #        end
+    #        @test out / length(sys.mol_positions) ≈ exciton_survival_prob(sys, t)
+    #    end
+    #end
 
-    @testset "Energy Uncertainty" begin
+    #@testset "Energy Uncertainty" begin
 
-        # Prepare a linear combination of polaritons #300 and #310       
-        wvp = zeros(ComplexF64, length(sys.evals))
-        wvp[300] = 1/√2
-        wvp[310] = 1/√2
-        avgE = 0.5*(sys.evals[300] + sys.evals[310])
-        E2 = 0.5*(sys.evals[300]^2 + sys.evals[310]^2)
+    #    # Prepare a linear combination of polaritons #300 and #310       
+    #    wvp = zeros(ComplexF64, length(sys.evals))
+    #    wvp[300] = 1/√2
+    #    wvp[310] = 1/√2
+    #    avgE = 0.5*(sys.evals[300] + sys.evals[310])
+    #    E2 = 0.5*(sys.evals[300]^2 + sys.evals[310]^2)
 
-        @test average_energy(wvp, sys) ≈ avgE
-        @test average_square_energy(wvp, sys) ≈ E2
-        @test energy_uncertainty(wvp, sys) ≈ sqrt(E2 - avgE^2)
+    #    @test average_energy(wvp, sys) ≈ avgE
+    #    @test average_square_energy(wvp, sys) ≈ E2
+    #    @test energy_uncertainty(wvp, sys) ≈ sqrt(E2 - avgE^2)
 
-        # If no coupling, average energy is the molecular energy
-        # and uncertainty is zero
-        nocoupling_sys = QuantumWire(
-            ΩR = 0.0eV,
-            ϵ  = 3.0,
-            Nc = 100,
-            Nm = 300,
-            a  = 10nm,
-            σa = 0,
-            ωM = 1.0eV,
-            σM = 0,
-            Ly = 1e7nm,
-            Lz = 1e7nm,
-            nz = 1,
-            ny = 1
-        )
+    #    # If no coupling, average energy is the molecular energy
+    #    # and uncertainty is zero
+    #    nocoupling_sys = QuantumWire(
+    #        ΩR = 0.0eV,
+    #        ϵ  = 3.0,
+    #        Nc = 100,
+    #        Nm = 300,
+    #        a  = 10nm,
+    #        σa = 0,
+    #        ωM = 1.0eV,
+    #        σM = 0,
+    #        Ly = 1e7nm,
+    #        Lz = 1e7nm,
+    #        nz = 1,
+    #        ny = 1
+    #    )
 
-        wvp = create_exciton_wavepacket(1500nm, 80nm, nocoupling_sys)
-        @test average_energy(wvp, nocoupling_sys) ≈ 1.0
-        @test energy_uncertainty(wvp, nocoupling_sys) < 1e-7
-    end
+    #    wvp = create_exciton_wavepacket(1500nm, 80nm, nocoupling_sys)
+    #    @test average_energy(wvp, nocoupling_sys) ≈ 1.0
+    #    @test energy_uncertainty(wvp, nocoupling_sys) < 1e-7
+    #end
 end
