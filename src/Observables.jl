@@ -245,31 +245,123 @@ function DOS(H, δE)
 end
 
 function DOS(evals::Vector, δE)
-    Emin = minimum(evals)
-    Emax = maximum(evals) + 0.01
-    invD = 1 / length(evals)
 
+    # Find boundaries for DOS evaluation
+    Emin = minimum(evals)
+    Emax = maximum(evals) + 0.01 # Add a little shift here to ensure the largest eigenvalue is included in the last bin
+
+    # Range containing lower and upper limits for each energy bin
     Elims = range(start=Emin, stop=Emax, step=δE)
+
+    # Initialize dos array 
     ρ = zeros(length(Elims)-1)
     Ebars = zeros(length(Elims)-1)
 
+    # Loop through bin limits
     for i in eachindex(Elims)
+
+        # Skip the last one (since there would be no i+1 entry). 
         if i == length(Elims)
             break
         end
 
+        # Store the verage value of the bin
         Ebars[i] = 0.5*(Elims[i] + Elims[i+1])
+
+        # Count the number of states within the limits
         ρ[i] = count(x-> x ≥ Elims[i] && x < Elims[i+1], evals)
     end
 
+    # Normalization factor such that the summed area of the histogram yields 1. 
     N = 1 / (δE*sum(ρ))
 
+    # Return bin values and heights. 
     return Ebars, N .* ρ
 end
 
+function LDOS(sys::QuantumWire, i, δE)
+    return LDOS(sys.evals, sys,Uix, i, δE)
+end
 
+function LDOS(evals::Vector, U::Matrix, x, δE)
 
+    # Get regular DOS
+    Ebars, dos = DOS(evals, δE)
 
+    # Intialize a vector for the site specific probability
+    ψ = zeros(length(dos))
 
+    Emin = minimum(evals)
+    Emax = maximum(evals) + 0.01
 
+    # Range containing lower and upper limits for each energy bin
+    Elims = range(start=Emin, stop=Emax, step=δE)
 
+    # Loop thorugh bin limits
+    for i in eachindex(Elims)
+        # Skip the last one (since there would be no i+1 entry). 
+        if i == length(Elims)
+            break
+        end
+
+        # Find the index of all eigenvalues within the limits
+        m = findall(x-> x ≥ Elims[i] && x < Elims[i+1], evals)
+
+        if isempty(m)
+            # Skip if nothing was found
+            ψ[i] = 0.0
+        else
+            # else, add up the probability for all m eigenvalues with energy within the limits
+            # Note that x here is the index of the local state and U is the eigenvector matrix
+            ψ[i] = sum(abs2.(U[x, m]))
+        end
+    end
+
+    # "filter" the dos with the probability array
+    ρ = ψ .* dos
+
+    return Ebars, ρ
+end
+
+function LDOS(evals::Vector, U::Matrix, δE)
+
+    Emin = minimum(evals)
+    Emax = maximum(evals) + 0.01
+
+    Elims = range(start=Emin, stop=Emax, step=δE)
+
+    Ebars = zeros(length(Elims)-1)
+    ρ = zeros(length(Ebars), length(evals))
+
+    # Intermediate array
+    ldos = similar(Ebars)
+
+    for x in eachindex(evals)
+
+        ldos .= 0.0
+        for i in eachindex(Elims)
+
+            # Skip the last one (since there would be no i+1 entry). 
+            if i == length(Elims)
+                break
+            end
+
+            # Store the verage value of the bin
+            Ebars[i] = 0.5*(Elims[i] + Elims[i+1])
+
+            # Find the index of all eigenvalues within the limits
+            m = findall(x-> x ≥ Elims[i] && x < Elims[i+1], evals)
+
+            if isempty(m)
+                continue
+            else
+                ldos[i] = sum(abs2.(U[x, m]))
+            end
+        end
+
+        # Normalize each LDOS
+        ρ[:,x] = ldos / (length(evals) * δE * sum(ldos))
+    end
+
+    return Ebars, ρ
+end
