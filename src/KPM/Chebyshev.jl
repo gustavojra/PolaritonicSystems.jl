@@ -93,8 +93,8 @@ end
 function cheb_scale(H::SymBlockArrowHead{T}; ϵ=0.01) where T
     Emin = eigsolve(H, 1, :SR)[1][1]
     Emax = eigsolve(H, 1, :LR)[1][1]
-    a = T.((Emax - Emin) / (2 - ϵ))
-    b = T.((Emax + Emin) / 2)
+    a = (Emax - Emin) / (2 - ϵ)
+    b = (Emax + Emin) / 2
     newd = (H.d .- b) ./ a
     newX = H.X ./ a
     return SymBlockArrowHead(newd, newX, H.l, H.r1, H.r2), a, b

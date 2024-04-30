@@ -279,46 +279,44 @@ function DOS(evals::Vector, δE)
     return Ebars, N .* ρ
 end
 
-function LDOS(sys::QuantumWire, i, δE)
-    return LDOS(sys.evals, sys,Uix, i, δE)
-end
+LDOS(sys::QuantumWire, x, δE) = LDOS(sys.evals, sys.Uix, x, δE)
+LDOS(sys::QuantumWire, δE) = LDOS(sys.evals, sys.Uix, δE)
 
 function LDOS(evals::Vector, U::Matrix, x, δE)
-
-    # Get regular DOS
-    Ebars, dos = DOS(evals, δE)
-
-    # Intialize a vector for the site specific probability
-    ψ = zeros(length(dos))
 
     Emin = minimum(evals)
     Emax = maximum(evals) + 0.01
 
-    # Range containing lower and upper limits for each energy bin
     Elims = range(start=Emin, stop=Emax, step=δE)
 
-    # Loop thorugh bin limits
+    Ebars = zeros(length(Elims)-1)
+    ρ = zeros(length(Ebars), length(evals))
+
+    # Intermediate array
+    ldos = similar(Ebars)
+
     for i in eachindex(Elims)
+
         # Skip the last one (since there would be no i+1 entry). 
         if i == length(Elims)
             break
         end
 
+        # Store the verage value of the bin
+        Ebars[i] = 0.5*(Elims[i] + Elims[i+1])
+
         # Find the index of all eigenvalues within the limits
         m = findall(x-> x ≥ Elims[i] && x < Elims[i+1], evals)
 
         if isempty(m)
-            # Skip if nothing was found
-            ψ[i] = 0.0
+            continue
         else
-            # else, add up the probability for all m eigenvalues with energy within the limits
-            # Note that x here is the index of the local state and U is the eigenvector matrix
-            ψ[i] = sum(abs2.(U[x, m]))
+            ldos[i] = sum(abs2.(U[x, m]))
         end
     end
 
-    # "filter" the dos with the probability array
-    ρ = ψ .* dos
+    # Normalize each LDOS
+    ldos = ldos / (length(evals) * δE * sum(ldos))
 
     return Ebars, ρ
 end
