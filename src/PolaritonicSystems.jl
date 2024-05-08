@@ -49,7 +49,8 @@ end
 include("Hamiltonian.jl")
 
 # Quantum System Objects
-include("System.jl")
+include("QuantumWire.jl")
+include("PlanarCavity.jl")
 
 # States and time evolution
 include("States.jl")

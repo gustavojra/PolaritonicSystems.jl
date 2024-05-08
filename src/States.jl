@@ -99,3 +99,21 @@ function create_photon_wavepacket(μ::Number, σ::Number, system::QuantumSystem)
     # Convert localized (uncoupled) basis to eigenbasis
     return system.Uix' * locstate
 end
+
+function create_pc_gaussian_wvp(dipoles::Vector{Dipole{T}}, NT, r0, σ, q0) where T
+
+    out = zeros(complex(T), NT)
+
+    for (i,d) in enumerate(dipoles)
+        rn = d.coord
+        δr = rn .- r0
+        out[i] = exp(- dot(δr, δr) / 4σ^2) * exp(im*(q0 ⋅ rn))
+    end
+
+    normalize!(out)
+
+    return out
+end
+
+
+
