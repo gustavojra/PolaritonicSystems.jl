@@ -186,7 +186,7 @@ function build_bah_pc_hamiltonian(dipoles::Vector{Dipole{T}}, modes::Vector{Phot
             kz = M.k[3]
             z = dip.coord[3]
             q = [M.k[1], M.k[2], 0.0]
-            εq = q ./ norm(q)
+            εq = norm(q) > 0.0 ? q ./ norm(q) : [1.0, 0.0, 0.0]
 
             # Prefactor, including Rabi splitting
             pf = -im * 0.5 * ΩR * √(dip.Em / (Nm*M.Ec)) 
@@ -196,12 +196,14 @@ function build_bah_pc_hamiltonian(dipoles::Vector{Dipole{T}}, modes::Vector{Phot
 
             # Interaction term assembled
             X[i,j] = pf * dot(dip.μ, fTE)  * exp(im * dot(q, dip.coord))
+            #X[i,j] = pf * norm(fTE)  * exp(im * dot(q, dip.coord))
 
             # TM Spatial profile - except exp part
-            fTM = (norm(M.k)/kz)^2 * (sin(kz * z) .* εq - (im * cos(kz * z) / kz) .* εz)
+            fTM = (1/norm(M.k)) * (kz * sin(kz * z) .* εq - (im * norm(q) * cos(kz * z) / kz) .* εz)
 
             # Interaction term assembled
             X[i,j+NTE] = pf * dot(dip.μ, fTM)  * exp(im * dot(q, dip.coord))
+            #X[i,j+NTE] = pf * norm(fTM)  * exp(im * dot(q, dip.coord))
         end
     end
 
