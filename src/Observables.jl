@@ -1,3 +1,5 @@
+export mean_r2
+
 """
     mean_square_disp
 
@@ -131,6 +133,19 @@ function get_exciton_prob(state::Vector, system::QuantumWire)
 
     # Renormalize 
     return loc ./ sum(loc)
+end
+
+function mean_r2(wvp, dipoles::Vector{Dipole{T}}, r0, drange) where T
+
+    P = sum(abs2.(wvp[drange]))
+
+    out = 0.0
+    for (i,d) in zip(drange, dipoles)
+        r = sum((r0 .- d.coord) .^ 2)
+        out += abs2(wvp[i]) * r
+    end
+
+    return out, P
 end
 
 """

@@ -9,7 +9,7 @@ struct SymBlockArrowHead{T} <: AbstractMatrix{T}
     r2::UnitRange{Int64}
 end
 
-function *(A::SymBlockArrowHead, v::Vector)
+function *(A::SymBlockArrowHead{T}, v::Vector{T}) where T
 
     if length(v) != A.l
         throw(DimensionMismatch("dimension of the vector [$(length(v))] does not match the required by the block arrowhead matrix [$(A.l)]"))

@@ -180,38 +180,94 @@ function build_bah_pc_hamiltonian(dipoles::Vector{Dipole{T}}, modes::Vector{Phot
     εz = [0.0, 0.0, 1.0]
     for (i, dip) = enumerate(dipoles)
 
+        (x, y, z) = dip.coord
+
         # Get interaction between dipoles and TE modes
         for (j, M) = enumerate(modes)
 
-            kz = M.k[3]
-            z = dip.coord[3]
-            q = [M.k[1], M.k[2], 0.0]
-            εq = norm(q) > 0.0 ? q ./ norm(q) : [1.0, 0.0, 0.0]
+            (kx, ky, kz) = M.k
 
-            # Prefactor, including Rabi splitting
+            # Construct cartesian modes. Note that uy = ux
+            ux =  √2 * im*exp(-im*kx*x)*exp(-im*ky*y)*sin(kz*z)
+            uz = (kz != 0 ? √2 : 1) * exp(-im*kx*x)*exp(-im*ky*y)*cos(kz*z)
+
+            # Get transformation matrix Cartesian -> k relative
+            Ol = get_Ol(M.k)
+
+            u1 = [
+            Ol[1,1]*ux,
+            Ol[1,2]*ux,
+            Ol[1,3]*uz
+            ]
+
+            u2 = [
+            Ol[2,1]*ux,
+            Ol[2,2]*ux,
+            Ol[2,3]*uz
+            ]
+
             pf = -im * 0.5 * ΩR * √(dip.Em / (Nm*M.Ec)) 
 
-            # TE Spatial profile - except exp part
-            fTE = sin(kz * z) * cross(εz, εq) 
+            X[i,j] = pf * dot(dip.μ, u1)
+            X[i,j+NTE] = pf * dot(dip.μ, u2)
 
-            # Interaction term assembled
-            X[i,j] = pf * dot(dip.μ, fTE)  * exp(im * dot(q, dip.coord))
-            #X[i,j] = pf * norm(fTE)  * exp(im * dot(q, dip.coord))
+            #kz = M.k[3]
+            #z = dip.coord[3]
+            #q = [M.k[1], M.k[2], 0.0]
+            #εq = norm(q) > 0.0 ? q ./ norm(q) : [1.0, 0.0, 0.0]
 
-            # TM Spatial profile - except exp part
-            fTM = (1/norm(M.k)) * (kz * sin(kz * z) .* εq - (im * norm(q) * cos(kz * z) / kz) .* εz)
+            ## Prefactor, including Rabi splitting
+            #pf = -im * 0.5 * ΩR * √(dip.Em / (Nm*M.Ec)) 
 
-            # Interaction term assembled
-            X[i,j+NTE] = pf * dot(dip.μ, fTM)  * exp(im * dot(q, dip.coord))
+            ## TE Spatial profile - except exp part
+            #fTE = sin(kz * z) * cross(εz, εq) 
+
+            ## Interaction term assembled
+            #X[i,j] = pf * dot(dip.μ, fTE)  * exp(im * dot(q, dip.coord))
+            ##X[i,j] = pf * norm(fTE)  * exp(im * dot(q, dip.coord))
+
+            ## TM Spatial profile - except exp part
+            #fTM = (1/norm(M.k)) * (kz * sin(kz * z) .* εq - (im * norm(q) * cos(kz * z) / kz) .* εz)
+
+            ## Interaction term assembled
+            #X[i,j+NTE] = pf * dot(dip.μ, fTM)  * exp(im * dot(q, dip.coord))
             #X[i,j+NTE] = pf * norm(fTM)  * exp(im * dot(q, dip.coord))
         end
     end
 
+    #println("Fake")
     return SymBlockArrowHead(d, X, Nm+2*NTE, 1:(2*NTE), (2*NTE+1):(NT))
 end
 
+function get_Ol(k)
 
+    kv = k ./ norm(k)
+    ex= [1.0, 0.0, 0.0]
+    ez = [0.0, 0.0, 1.0]
 
+    cosθ = kv[3]
+    sinθ = sqrt(1 - cosθ^2)
+
+    cosϕ = cosθ != 1.0 ? kv[1]/sinθ : 0.0
+    sinϕ = cosθ != 1.0 ? kv[2]/sinθ : 1.0
+
+    out = [
+        cosθ*cosϕ  cosθ*sinϕ  -sinθ ;
+        -sinϕ        cosϕ      0    ;
+        sinθ*cosϕ  sinθ*sinϕ   cosθ
+    ]
+
+    #θ = acos(kv⋅ez)
+    #ϕ = θ != 0.0 ? acos(kv⋅ex /sin(θ)) : π/2
+
+    #out = [
+    #    cos(θ)*cos(ϕ)  cos(θ)*sin(ϕ)  -sin(θ) ;
+    #    -sin(ϕ)        cos(ϕ)           0     ;
+    #    sin(θ)*cos(ϕ)  sin(θ)*sin(ϕ)   cos(θ)
+    #]
+
+    return out
+end
 
 
 
